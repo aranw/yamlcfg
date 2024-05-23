@@ -56,9 +56,9 @@ func (c *Config) Validate() error {
 }
 
 func main() {
-	cfg, err := yamlcfg.Load[Config]("config.yaml")
+	cfg, err := yamlcfg.Parse[Config]("config.yaml")
 	if err != nil {
-		slog.Error("loading yaml config", "err", err)
+		slog.Error("parsing yaml config", "err", err)
 		return
 	}
 
