@@ -2,15 +2,37 @@ package yamlcfg
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
-// Load takes the given path and attempts to read and unmarshal the config
+// ParseFS attempts to load the given path and config from a embed.FS
+func ParseFS[T any](fs embed.FS, path string) (*T, error) {
+	var cfg *T
+
+	b, err := fs.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading config from embed.FS: %w", err)
+	} else if err := UnmarshalConfig(&cfg, b); err != nil {
+		return nil, fmt.Errorf("unmarshalling config: %w", err)
+	}
+	if cfg, ok := interface{}(cfg).(interface {
+		Validate() error
+	}); ok {
+		if err := cfg.Validate(); err != nil {
+			return nil, fmt.Errorf("validating config: %w", err)
+		}
+	}
+
+	return cfg, nil
+}
+
+// Parse takes the given path and attempts to read and unmarshal the config
 // The given config will also be validated if it has a Validate function on it
-func Load[T any](path string) (*T, error) {
+func Parse[T any](path string) (*T, error) {
 	var cfg *T
 
 	b, err := os.ReadFile(path)

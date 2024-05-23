@@ -11,7 +11,7 @@ type Config struct {
 }
 
 func ExampleLoad() {
-	cfg, err := yamlcfg.Load[Config]("config.yaml")
+	cfg, err := yamlcfg.Parse[Config]("config.yaml")
 	if err != nil {
 		slog.Error("loading yaml config", "err", err)
 		return
