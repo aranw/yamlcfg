@@ -9,7 +9,8 @@ import (
 )
 
 type TestStruct struct {
-	SomeValue string `yaml:"some_value"`
+	SomeValue   string `yaml:"some_value"`
+	SecondValue string `yaml:"second_value"`
 }
 
 func (t *TestStruct) Validate() error {
@@ -58,6 +59,23 @@ func TestParseFS(t *testing.T) {
 		qt.Assert(t, qt.ErrorMatches(err, "validating config: this is going to fail"))
 		qt.Assert(t, qt.IsNil(cfg))
 	})
+}
+
+func TestParseWithConfig(t *testing.T) {
+	t.Run("successfully load and unmarshals config with defaults", func(t *testing.T) {
+		cfg := &TestStruct{
+			SecondValue: "This is the default",
+		}
+
+		cfg, err := ParseWithConfig[TestStruct](cfg, "testdata/test1.yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.SomeValue, "this is for testing purposes"))
+		qt.Assert(t, qt.Equals(cfg.SecondValue, "This is the default"))
+	})
+
 }
 
 func TestParse(t *testing.T) {

@@ -16,40 +16,31 @@ func ParseFS[T any](fs embed.FS, path string) (*T, error) {
 	b, err := fs.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config from embed.FS: %w", err)
-	} else if err := UnmarshalConfig(&cfg, b); err != nil {
-		return nil, fmt.Errorf("unmarshalling config: %w", err)
-	}
-	if cfg, ok := interface{}(cfg).(interface {
-		Validate() error
-	}); ok {
-		if err := cfg.Validate(); err != nil {
-			return nil, fmt.Errorf("validating config: %w", err)
-		}
 	}
 
-	return cfg, nil
+	return parse(cfg, b)
 }
 
 // Parse takes the given path and attempts to read and unmarshal the config
 // The given config will also be validated if it has a Validate function on it
 func Parse[T any](path string) (*T, error) {
-	var cfg *T
-
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)
-	} else if err := UnmarshalConfig(&cfg, b); err != nil {
-		return nil, fmt.Errorf("unmarshalling config: %w", err)
 	}
-	if cfg, ok := interface{}(cfg).(interface {
-		Validate() error
-	}); ok {
-		if err := cfg.Validate(); err != nil {
-			return nil, fmt.Errorf("validating config: %w", err)
-		}
-	}
+	var cfg *T
+	return parse(cfg, b)
+}
 
-	return cfg, nil
+// ParseWithConfig takes the given config and path and attempts to read and unmarshal the config
+// The given config can be populated with default values
+// If the given config implements a `Validate() error` function this will be called
+func ParseWithConfig[T any](cfg *T, path string) (*T, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading config file: %w", err)
+	}
+	return parse(cfg, b)
 }
 
 // UnmarshalConfig takes the provided yaml data and unmarshals it
@@ -63,4 +54,19 @@ func UnmarshalConfig[T any](cfg *T, data []byte) error {
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
 	return dec.Decode(&cfg)
+}
+
+func parse[T any](cfg *T, b []byte) (*T, error) {
+	if err := UnmarshalConfig(&cfg, b); err != nil {
+		return nil, fmt.Errorf("unmarshalling config: %w", err)
+	}
+	if cfg, ok := interface{}(cfg).(interface {
+		Validate() error
+	}); ok {
+		if err := cfg.Validate(); err != nil {
+			return nil, fmt.Errorf("validating config: %w", err)
+		}
+	}
+
+	return cfg, nil
 }
