@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
@@ -49,7 +50,7 @@ func ParseWithConfig[T any](cfg *T, path string) (*T, error) {
 // It will also expand any environment variables in the yaml data
 func UnmarshalConfig[T any](cfg *T, data []byte) error {
 	// expand any $VAR values in the config from environment variables
-	data = []byte(os.ExpandEnv(string(data)))
+	data = []byte(parseEnv(string(data)))
 
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(true)
@@ -69,4 +70,36 @@ func parse[T any](cfg *T, b []byte) (*T, error) {
 	}
 
 	return cfg, nil
+}
+
+// parseEnv replaces $ENV_NAME and ${ENV_NAME:default} placeholders.
+// Default values are only supported with ${ENV_NAME:default}.
+func parseEnv(input string) string {
+	// Regex to match both $ENV_NAME and ${ENV_NAME:default}
+	re := regexp.MustCompile(`\$(\w+)|\$\{(\w+)(?::([^}]*))?\}`)
+
+	return re.ReplaceAllStringFunc(input, func(match string) string {
+		parts := re.FindStringSubmatch(match)
+		if len(parts) == 0 {
+			return match // No match, return as-is
+		}
+
+		// Check if it's $ENV_NAME or ${ENV_NAME:default}
+		if parts[1] != "" {
+			// $ENV_NAME style
+			varName := parts[1]
+			if value, found := os.LookupEnv(varName); found {
+				return value
+			}
+			return "" // If not found, replace with an empty string
+		}
+
+		// ${ENV_NAME:default} style
+		varName := parts[2]
+		defaultValue := parts[3]
+		if value, found := os.LookupEnv(varName); found {
+			return value
+		}
+		return defaultValue // Fallback to default value if not found
+	})
 }

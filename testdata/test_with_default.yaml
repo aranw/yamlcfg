@@ -1,0 +1,1 @@
+some_value: "${SOME_VALUE:this_is_the_default}"

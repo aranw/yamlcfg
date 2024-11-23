@@ -89,6 +89,15 @@ func TestParse(t *testing.T) {
 		qt.Assert(t, qt.Equals(cfg.SomeValue, "this is for testing purposes"))
 	})
 
+	t.Run("successfully parses yaml config with default value", func(t *testing.T) {
+		cfg, err := Parse[TestStruct]("testdata/test_with_default.yaml")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.SomeValue, "this_is_the_default"))
+	})
+
 	t.Run("fails to read unknown file", func(t *testing.T) {
 		cfg, err := Parse[TestStruct]("testdata/this_file_does_not_exist.yaml")
 		qt.Assert(t, qt.IsNotNil(err))

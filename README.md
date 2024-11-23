@@ -1,10 +1,10 @@
 # yamlcfg
 
-yamlcfg is a wrapper around the [gopkg.in/yaml.v3](https://gopkg.in/yaml.v3) library and provides a convient way to configure Golang applications with YAML and environment variables. 
+yamlcfg is a wrapper around the [gopkg.in/yaml.v3](https://gopkg.in/yaml.v3) library and provides a convient way to configure Golang applications with YAML and environment variables.
 
 The library can also automatically call `Validate` functions if present on the given config struct.
 
-## Installation 
+## Installation
 
 To install, run:
 
@@ -65,4 +65,13 @@ func main() {
 	_ = cfg.LogLevel
 }
 
+```
+
+## Example with default value
+
+
+Example `config.yaml` with environment configuration and default values
+
+```yaml
+log_level: ${LOG_LEVEL:info}
 ```
