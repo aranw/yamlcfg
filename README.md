@@ -21,7 +21,7 @@ The yamlcfg package is licensed under the MIT. Please see the LICENSE file for d
 Example `config.yaml` with configuration value loaded from environment variables
 
 ```yaml
-log_level: $LOG_LEVEL
+log_level: "${LOG_LEVEL}"
 ```
 
 Example `main.go`
