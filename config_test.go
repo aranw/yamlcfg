@@ -133,7 +133,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		qt.Assert(t, qt.Equals(cfg.Name, "test"))
 	})
 
-	t.Run("valid config with env vars", func(t *testing.T) {
+	t.Run("valid config with $ inside string", func(t *testing.T) {
 		t.Setenv("NAME", "testing")
 
 		b := []byte(`name: $NAME`)
@@ -144,7 +144,105 @@ func TestUnmarshalConfig(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		qt.Assert(t, qt.Equals(cfg.Name, "$NAME"))
+	})
+
+	t.Run("valid config with ${ENV_VAR}", func(t *testing.T) {
+		t.Setenv("ENV_VAR", "testing")
+
+		b := []byte(`name: ${ENV_VAR}`)
+		cfg := struct {
+			Name string `yaml:"name"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
 		qt.Assert(t, qt.Equals(cfg.Name, "testing"))
+	})
+
+	t.Run("valid config fallbacks to ENV_VAR default", func(t *testing.T) {
+		b := []byte(`name: ${ENV_VAR:default}`)
+		cfg := struct {
+			Name string `yaml:"name"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Name, "default"))
+	})
+
+	t.Run("valid config with env var in middle of string", func(t *testing.T) {
+		b := []byte(`name: "This should return ${ENV_VAR:default}"`)
+		cfg := struct {
+			Name string `yaml:"name"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Name, "This should return default"))
+	})
+
+	t.Run("valid config with multiple env vars", func(t *testing.T) {
+		b := []byte(`name: "${FIRST:default1} ${SECOND:default2}"`)
+		cfg := struct {
+			Name string `yaml:"name"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Name, "default1 default2"))
+	})
+
+	t.Run("should ignore dollar var in string", func(t *testing.T) {
+		b := []byte(`name: "${FIRST:default1} $thisisignored"`)
+		cfg := struct {
+			Name string `yaml:"name"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Name, "default1 $thisisignored"))
+	})
+
+	t.Run("randomly generated string with $", func(t *testing.T) {
+		b := []byte(`password: "my$password123"`)
+		cfg := struct {
+			Password string `yaml:"password"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Password, "my$password123"))
+	})
+
+	t.Run("url with $ symbole", func(t *testing.T) {
+		b := []byte(`url: "http://example.com/$path"`)
+		cfg := struct {
+			Url string `yaml:"url"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Url, "http://example.com/$path"))
+	})
+
+	t.Run("parses mixed input", func(t *testing.T) {
+		b := []byte(`mixed: "prefix${ENV_VAR:default}$suffix"`)
+		cfg := struct {
+			Mixed string `yaml:"mixed"`
+		}{}
+		if err := UnmarshalConfig(&cfg, b); err != nil {
+			t.Fatal(err)
+		}
+
+		qt.Assert(t, qt.Equals(cfg.Mixed, "prefixdefault$suffix"))
 	})
 
 	t.Run("invalid config", func(t *testing.T) {

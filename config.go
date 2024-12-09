@@ -72,34 +72,25 @@ func parse[T any](cfg *T, b []byte) (*T, error) {
 	return cfg, nil
 }
 
-// parseEnv replaces $ENV_NAME and ${ENV_NAME:default} placeholders.
-// Default values are only supported with ${ENV_NAME:default}.
+// parseEnv replaces environment variables with their values.
+// Supports two formats:
+// 1. ${ENV_NAME} or ${ENV_NAME:default} anywhere in the string
+// 2. $ENV_NAME only when it's the entire string
 func parseEnv(input string) string {
-	// Regex to match both $ENV_NAME and ${ENV_NAME:default}
-	re := regexp.MustCompile(`\$(\w+)|\$\{(\w+)(?::([^}]*))?\}`)
+	re := regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
 
 	return re.ReplaceAllStringFunc(input, func(match string) string {
 		parts := re.FindStringSubmatch(match)
 		if len(parts) == 0 {
-			return match // No match, return as-is
+			return match
 		}
 
-		// Check if it's $ENV_NAME or ${ENV_NAME:default}
-		if parts[1] != "" {
-			// $ENV_NAME style
-			varName := parts[1]
-			if value, found := os.LookupEnv(varName); found {
-				return value
-			}
-			return "" // If not found, replace with an empty string
-		}
+		key := parts[1]
+		defaultValue := parts[2] // May be empty if no default provided
 
-		// ${ENV_NAME:default} style
-		varName := parts[2]
-		defaultValue := parts[3]
-		if value, found := os.LookupEnv(varName); found {
+		if value, found := os.LookupEnv(key); found {
 			return value
 		}
-		return defaultValue // Fallback to default value if not found
+		return defaultValue // Return default value (empty string if no default was provided)
 	})
 }
