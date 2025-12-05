@@ -7,7 +7,7 @@ import (
 	"os"
 	"regexp"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // ParseFS attempts to load the given path and config from a embed.FS
