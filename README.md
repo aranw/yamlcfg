@@ -4,6 +4,12 @@ yamlcfg is a wrapper around the [go.yaml.in/yaml/v4](https://go.yaml.in/yaml/v4)
 
 The library can also automatically call `Validate` functions if present on the given config struct.
 
+## Why?
+
+Not every configuration value needs to be an environment variable. Database pool sizes, timeouts, feature flags, and other stable settings are better expressed as static YAML values that live in version control alongside your code. But secrets and environment-specific values (database URLs, API keys, listen addresses) still need to come from the environment.
+
+yamlcfg lets you combine both in a single config file — static values that rarely change sit next to `${VAR}` references that get resolved at startup. This means fewer environment variables to manage, sensible defaults via `${VAR:default}` syntax, and a single file that documents your application's full configuration surface.
+
 ## Installation
 
 ```
