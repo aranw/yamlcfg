@@ -221,7 +221,7 @@ func TestUnmarshalConfig(t *testing.T) {
 		qt.Assert(t, qt.Equals(cfg.Password, "my$password123"))
 	})
 
-	t.Run("url with $ symbole", func(t *testing.T) {
+	t.Run("url with $ symbol", func(t *testing.T) {
 		b := []byte(`url: "http://example.com/$path"`)
 		cfg := struct {
 			Url string `yaml:"url"`

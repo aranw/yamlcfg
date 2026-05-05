@@ -10,6 +10,8 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+var envVarRe = regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
+
 // ParseFS attempts to load the given path and config from a embed.FS
 func ParseFS[T any](fs embed.FS, path string) (*T, error) {
 	var cfg *T
@@ -61,7 +63,7 @@ func parse[T any](cfg *T, b []byte) (*T, error) {
 	if err := UnmarshalConfig(&cfg, b); err != nil {
 		return nil, fmt.Errorf("unmarshalling config: %w", err)
 	}
-	if cfg, ok := interface{}(cfg).(interface {
+	if cfg, ok := any(cfg).(interface {
 		Validate() error
 	}); ok {
 		if err := cfg.Validate(); err != nil {
@@ -77,20 +79,18 @@ func parse[T any](cfg *T, b []byte) (*T, error) {
 // 1. ${ENV_NAME} or ${ENV_NAME:default} anywhere in the string
 // 2. $ENV_NAME only when it's the entire string
 func parseEnv(input string) string {
-	re := regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
-
-	return re.ReplaceAllStringFunc(input, func(match string) string {
-		parts := re.FindStringSubmatch(match)
+	return envVarRe.ReplaceAllStringFunc(input, func(match string) string {
+		parts := envVarRe.FindStringSubmatch(match)
 		if len(parts) == 0 {
 			return match
 		}
 
 		key := parts[1]
-		defaultValue := parts[2] // May be empty if no default provided
+		defaultValue := parts[2]
 
 		if value, found := os.LookupEnv(key); found {
 			return value
 		}
-		return defaultValue // Return default value (empty string if no default was provided)
+		return defaultValue
 	})
 }
