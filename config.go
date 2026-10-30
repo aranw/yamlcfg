@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-
-	"github.com/goccy/go-yaml"
 )
 
 var envVarRe = regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
 
 // ParseFS attempts to load the given path and config from a embed.FS
-func ParseFS[T any](fs embed.FS, path string) (*T, error) {
+func ParseFS[T any](fs embed.FS, path string, opts ...Option) (*T, error) {
 	var cfg *T
 
 	b, err := fs.ReadFile(path)
@@ -21,48 +19,48 @@ func ParseFS[T any](fs embed.FS, path string) (*T, error) {
 		return nil, fmt.Errorf("reading config from embed.FS: %w", err)
 	}
 
-	return parse(cfg, b)
+	return parse(cfg, b, opts...)
 }
 
 // Parse takes the given path and attempts to read and unmarshal the config
 // The given config will also be validated if it has a Validate function on it
-func Parse[T any](path string) (*T, error) {
+func Parse[T any](path string, opts ...Option) (*T, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
 	var cfg *T
-	return parse(cfg, b)
+	return parse(cfg, b, opts...)
 }
 
 // ParseWithConfig takes the given config and path and attempts to read and unmarshal the config
 // The given config can be populated with default values
 // If the given config implements a `Validate() error` function this will be called
-func ParseWithConfig[T any](cfg *T, path string) (*T, error) {
+func ParseWithConfig[T any](cfg *T, path string, opts ...Option) (*T, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading config file: %w", err)
 	}
-	return parse(cfg, b)
+	return parse(cfg, b, opts...)
 }
 
 // UnmarshalConfig takes the provided yaml data and unmarshals it
 // into the provided config struct. It will return an error if the
 // decoding fails or if the yaml data is not in the expected format.
 // It will also expand any environment variables in the yaml data
-func UnmarshalConfig[T any](cfg *T, data []byte) error {
+func UnmarshalConfig[T any](cfg *T, data []byte, opts ...Option) error {
 	// expand any $VAR values in the config from environment variables
 	data = []byte(parseEnv(string(data)))
 
-	dec := yaml.NewDecoder(bytes.NewReader(data), yaml.Strict())
+	dec := newDecodeConfig(opts).decoder(bytes.NewReader(data))
 	return dec.Decode(cfg)
 }
 
-func parse[T any](cfg *T, b []byte) (*T, error) {
+func parse[T any](cfg *T, b []byte, opts ...Option) (*T, error) {
 	if cfg == nil {
 		cfg = new(T)
 	}
-	if err := UnmarshalConfig(cfg, b); err != nil {
+	if err := UnmarshalConfig(cfg, b, opts...); err != nil {
 		return nil, fmt.Errorf("unmarshalling config: %w", err)
 	}
 	if cfg, ok := any(cfg).(interface {

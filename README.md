@@ -118,6 +118,65 @@ func (c *Config) Validate() error {
 }
 ```
 
+## Options
+
+All loading functions accept functional `Option`s. Decoding is strict by default (unknown fields and duplicate keys are rejected); options can relax or extend that behaviour:
+
+```go
+cfg, err := yamlcfg.Parse[Config]("config.yaml",
+    yamlcfg.AllowUnknownFields(),          // ignore unknown keys
+    yamlcfg.AllowDuplicateKeys(),          // last duplicate key wins
+    yamlcfg.AllowFieldPrefixes("x_"),      // let strict mode pass keys with these prefixes
+    yamlcfg.UseOrderedMap(),               // decode untyped maps as *yaml.MapSlice
+)
+```
+
+## Cross-file references
+
+Anchors and aliases can be defined in other YAML files, enabling shared `defaults.yaml`-style configs:
+
+```go
+cfg, err := yamlcfg.Parse[Config]("config.yaml",
+    yamlcfg.WithReferenceFiles("defaults.yaml"),
+)
+```
+
+`WithReferenceDirs` and `WithRecursiveDirs` load reference files from directories, `WithReferenceReaders` from any `io.Reader`, and `WithEmbeddedReferences` from the same `embed.FS` used with `ParseFS`:
+
+```go
+cfg, err := yamlcfg.ParseFS[Config](configFS, "config.yaml",
+    yamlcfg.WithEmbeddedReferences(configFS, "defaults.yaml"),
+)
+```
+
+Note: `${VAR}` environment variable expansion only applies to the main config data, not to referenced files.
+
+## Pluggable validation
+
+Besides the `Validate() error` interface, a `StructValidator` can be plugged in — the interface implemented by [go-playground/validator](https://github.com/go-playground/validator), so tag-based validation runs automatically after decoding:
+
+```go
+validate := validator.New()
+
+cfg, err := yamlcfg.Parse[Config]("config.yaml",
+    yamlcfg.WithValidator(validate), // struct tags like `validate:"min=1"`
+)
+```
+
+## Typed errors
+
+YAML errors returned by this package wrap the underlying typed errors from goccy/go-yaml, so failures can be handled programmatically with `errors.As`:
+
+```go
+var fieldErr *yamlcfg.UnknownFieldError
+if errors.As(err, &fieldErr) {
+    line, col, _ := yamlcfg.Position(err)
+    log.Printf("unknown field at config.yaml:%d:%d", line, col)
+}
+```
+
+Convenience predicates `IsSyntaxError`, `IsTypeError`, `IsUnknownFieldError`, `IsDuplicateKeyError` and `IsOverflowError` are also available, and every typed error's `Error()` includes the offending source line with a position marker.
+
 ## License
 
 The yamlcfg package is licensed under the MIT license. Please see the LICENSE file for details.
