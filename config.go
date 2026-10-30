@@ -7,7 +7,7 @@ import (
 	"os"
 	"regexp"
 
-	"go.yaml.in/yaml/v4"
+	"github.com/goccy/go-yaml"
 )
 
 var envVarRe = regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
@@ -54,13 +54,15 @@ func UnmarshalConfig[T any](cfg *T, data []byte) error {
 	// expand any $VAR values in the config from environment variables
 	data = []byte(parseEnv(string(data)))
 
-	dec := yaml.NewDecoder(bytes.NewReader(data))
-	dec.KnownFields(true)
-	return dec.Decode(&cfg)
+	dec := yaml.NewDecoder(bytes.NewReader(data), yaml.Strict())
+	return dec.Decode(cfg)
 }
 
 func parse[T any](cfg *T, b []byte) (*T, error) {
-	if err := UnmarshalConfig(&cfg, b); err != nil {
+	if cfg == nil {
+		cfg = new(T)
+	}
+	if err := UnmarshalConfig(cfg, b); err != nil {
 		return nil, fmt.Errorf("unmarshalling config: %w", err)
 	}
 	if cfg, ok := any(cfg).(interface {

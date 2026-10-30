@@ -49,7 +49,7 @@ func TestParseFS(t *testing.T) {
 	t.Run("fails to read wrong file type", func(t *testing.T) {
 		cfg, err := ParseFS[TestStruct](testdata, "testdata/gopher.png")
 		qt.Assert(t, qt.IsNotNil(err))
-		qt.Assert(t, qt.ErrorMatches(err, "unmarshalling config: yaml: .*"))
+		qt.Assert(t, qt.ErrorMatches(err, `unmarshalling config: \[\d+:\d+\](?s:.*)`))
 		qt.Assert(t, qt.IsNil(cfg))
 	})
 
@@ -108,7 +108,7 @@ func TestParse(t *testing.T) {
 	t.Run("fails to read wrong file type", func(t *testing.T) {
 		cfg, err := Parse[TestStruct]("testdata/gopher.png")
 		qt.Assert(t, qt.IsNotNil(err))
-		qt.Assert(t, qt.ErrorMatches(err, "unmarshalling config: yaml: .*"))
+		qt.Assert(t, qt.ErrorMatches(err, `unmarshalling config: \[\d+:\d+\](?s:.*)`))
 		qt.Assert(t, qt.IsNil(cfg))
 	})
 
@@ -243,6 +243,14 @@ func TestUnmarshalConfig(t *testing.T) {
 		}
 
 		qt.Assert(t, qt.Equals(cfg.Mixed, "prefixdefault$suffix"))
+	})
+
+	t.Run("rejects unknown fields", func(t *testing.T) {
+		b := []byte("some_value: \"foo\"\nunknown_value: \"bar\"")
+		cfg := TestStruct{}
+		if err := UnmarshalConfig(&cfg, b); err == nil {
+			t.Fatal("expected error for unknown field")
+		}
 	})
 
 	t.Run("invalid config", func(t *testing.T) {

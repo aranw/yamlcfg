@@ -1,6 +1,6 @@
 # yamlcfg
 
-yamlcfg is a wrapper around the [go.yaml.in/yaml/v4](https://go.yaml.in/yaml/v4) library and provides a convenient way to configure Go applications with YAML and environment variables.
+yamlcfg is a wrapper around the [goccy/go-yaml](https://github.com/goccy/go-yaml) library and provides a convenient way to configure Go applications with YAML and environment variables.
 
 The library can also automatically call `Validate` functions if present on the given config struct.
 
