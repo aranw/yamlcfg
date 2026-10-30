@@ -2,7 +2,7 @@
 
 yamlcfg is a wrapper around the [goccy/go-yaml](https://github.com/goccy/go-yaml) library and provides a convenient way to configure Go applications with YAML and environment variables.
 
-The library can also automatically call `Validate` functions if present on the given config struct.
+The library can also automatically call `Validate` functions if present on the given config struct, and supports pluggable validators, cross-file references, and typed errors with source positions. Decoding is strict by default.
 
 ## Why?
 
@@ -40,6 +40,8 @@ dsn: "host=${DB_HOST:localhost} port=${DB_PORT:5432} dbname=${DB_NAME:myapp}"
 Note: bare `$VAR` references (without braces) are treated as literal strings and not expanded.
 
 ## Usage
+
+All loading functions accept functional `Option`s to customise decoding (see [Options](#options)).
 
 ### Parse
 
@@ -127,7 +129,7 @@ cfg, err := yamlcfg.Parse[Config]("config.yaml",
     yamlcfg.AllowUnknownFields(),          // ignore unknown keys
     yamlcfg.AllowDuplicateKeys(),          // last duplicate key wins
     yamlcfg.AllowFieldPrefixes("x_"),      // let strict mode pass keys with these prefixes
-    yamlcfg.UseOrderedMap(),               // decode untyped maps as *yaml.MapSlice
+    yamlcfg.UseOrderedMap(),               // decode untyped maps as yaml.MapSlice
 )
 ```
 

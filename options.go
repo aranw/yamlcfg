@@ -56,7 +56,7 @@ func AllowDuplicateKeys() Option {
 }
 
 // UseOrderedMap preserves mapping key order by decoding untyped values
-// (interface{} destinations) as a *yaml.MapSlice instead of a map.
+// (interface{} destinations) as a yaml.MapSlice instead of a map.
 func UseOrderedMap() Option {
 	return func(c *decodeConfig) {
 		c.decodeOptions = append(c.decodeOptions, yaml.UseOrderedMap())

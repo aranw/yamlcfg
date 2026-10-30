@@ -10,7 +10,9 @@ import (
 
 var envVarRe = regexp.MustCompile(`\$\{(\w+)(?::([^}]*))?\}`)
 
-// ParseFS attempts to load the given path and config from a embed.FS
+// ParseFS loads and unmarshals the config at the given path from an
+// embed.FS. The config is also validated if it implements a Validate
+// function. Decoding behaviour can be adjusted with opts (see Option).
 func ParseFS[T any](fs embed.FS, path string, opts ...Option) (*T, error) {
 	var cfg *T
 
@@ -22,8 +24,9 @@ func ParseFS[T any](fs embed.FS, path string, opts ...Option) (*T, error) {
 	return parse(cfg, b, opts...)
 }
 
-// Parse takes the given path and attempts to read and unmarshal the config
-// The given config will also be validated if it has a Validate function on it
+// Parse reads the given path and unmarshals it into the given config
+// type. The config is also validated if it has a Validate function on it.
+// Decoding behaviour can be adjusted with opts (see Option).
 func Parse[T any](path string, opts ...Option) (*T, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -33,9 +36,11 @@ func Parse[T any](path string, opts ...Option) (*T, error) {
 	return parse(cfg, b, opts...)
 }
 
-// ParseWithConfig takes the given config and path and attempts to read and unmarshal the config
-// The given config can be populated with default values
-// If the given config implements a `Validate() error` function this will be called
+// ParseWithConfig parses the YAML file at the given path into the provided
+// config, which can be pre-populated with default values; fields absent
+// from the file retain their defaults.
+// If the given config implements a `Validate() error` function this will be called.
+// Decoding behaviour can be adjusted with opts (see Option).
 func ParseWithConfig[T any](cfg *T, path string, opts ...Option) (*T, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -47,7 +52,8 @@ func ParseWithConfig[T any](cfg *T, path string, opts ...Option) (*T, error) {
 // UnmarshalConfig takes the provided yaml data and unmarshals it
 // into the provided config struct. It will return an error if the
 // decoding fails or if the yaml data is not in the expected format.
-// It will also expand any environment variables in the yaml data
+// It will also expand any environment variables in the yaml data.
+// Decoding behaviour can be adjusted with opts (see Option).
 func UnmarshalConfig[T any](cfg *T, data []byte, opts ...Option) error {
 	// expand any $VAR values in the config from environment variables
 	data = []byte(parseEnv(string(data)))
